@@ -1,18 +1,16 @@
 name: Docker Image from pull request
 
 on:
-  push:
-    branches-ignore:
-    - master
+  pull_request:
+    branches:
+      - master
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - name: Branch name
-      run: echo running on branch ${GITHUB_HEAD_REF##*/}
-    - name: Build the Docker images
+    - name: Build
       run: |
         export GITHUB_TAG_NAME=${GITHUB_HEAD_REF##*/}
         docker login -u ${{ secrets.DOCKER_HUB_USER }} -p ${{ secrets.DOCKER_HUB_TOKEN }}

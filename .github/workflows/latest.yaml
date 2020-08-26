@@ -1,21 +1,20 @@
-name: Docker Image from master
+name: Build latest image
 
 on:
   push:
     branches:
       - master
-    tags:
-      - '*'
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - uses: olegtarasov/get-tag@v1
-      id: tagName
-    - name: Build the Docker images
+    - name: Build
       run: |
         docker login -u ${{ secrets.DOCKER_HUB_USER }} -p ${{ secrets.DOCKER_HUB_TOKEN }}
         make docker-image
         make docker-push
+    - uses: release-drafter/release-drafter@v5
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
