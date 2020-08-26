@@ -19,10 +19,12 @@ package provider
 
 import (
 	"context"
+	"strings"
 
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/driver"
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/machinecodes/codes"
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/machinecodes/status"
+	metalgo "github.com/metal-stack/metal-go"
 	"k8s.io/klog"
 )
 
@@ -58,11 +60,49 @@ import (
 // This logic is used by safety controller to delete orphan VMs which are not backed by any machine CRD
 //
 func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineRequest) (*driver.CreateMachineResponse, error) {
-	// Log messages to track request
 	klog.V(2).Infof("Machine creation request has been recieved for %q", req.Machine.Name)
+	providerSpec, err := decodeProviderSpecAndSecret(req.MachineClass, req.Secret)
+	if err != nil {
+		return nil, err
+	}
+
+	m, err := p.initDriver(req.Secret)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	networks := []metalgo.MachineAllocationNetwork{
+		{
+			Autoacquire: true,
+			NetworkID:   providerSpec.Network,
+		},
+	}
+	createRequest := &metalgo.MachineCreateRequest{
+		Description:   req.Machine.Name + " created by Gardener.",
+		Name:          req.Machine.Name,
+		Hostname:      req.Machine.Name,
+		UserData:      providerSpec.UserData,
+		Size:          providerSpec.Size,
+		Project:       providerSpec.Project,
+		Networks:      networks,
+		Partition:     providerSpec.Partition,
+		Image:         providerSpec.Image,
+		Tags:          providerSpec.Tags,
+		SSHPublicKeys: providerSpec.SSHKeys,
+	}
+
+	mcr, err := m.MachineCreate(createRequest)
+	if err != nil {
+		klog.Errorf("Could not create machine: %v", err)
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
 	defer klog.V(2).Infof("Machine creation request has been processed for %q", req.Machine.Name)
 
-	return &driver.CreateMachineResponse{}, status.Error(codes.Unimplemented, "")
+	return &driver.CreateMachineResponse{
+		ProviderID: encodeMachineID(providerSpec.Partition, *mcr.Machine.ID),
+		NodeName:   *mcr.Machine.Allocation.Name,
+	}, nil
 }
 
 // DeleteMachine handles a machine deletion request
@@ -77,11 +117,43 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 //                                                Could be helpful to continue operations in future requests.
 //
 func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineRequest) (*driver.DeleteMachineResponse, error) {
-	// Log messages to track delete request
 	klog.V(2).Infof("Machine deletion request has been recieved for %q", req.Machine.Name)
-	defer klog.V(2).Infof("Machine deletion request has been processed for %q", req.Machine.Name)
+	providerSpec, err := decodeProviderSpecAndSecret(req.MachineClass, req.Secret)
+	if err != nil {
+		return nil, err
+	}
 
-	return &driver.DeleteMachineResponse{}, status.Error(codes.Unimplemented, "")
+	m, err := p.initDriver(req.Secret)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	id := decodeMachineID(req.Machine.Spec.ProviderID)
+
+	mfr := &metalgo.MachineFindRequest{
+		ID:                &id,
+		AllocationProject: &providerSpec.Project,
+	}
+
+	resp, err := m.MachineFind(mfr)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	switch len(resp.Machines) {
+	case 0:
+		klog.Infof("no machine with id %q found in project %q, already deleted and therefore skipping deletion", id, providerSpec.Project)
+		return &driver.DeleteMachineResponse{}, nil
+	case 1:
+		_, err = m.MachineDelete(id)
+		if err != nil {
+			return nil, status.Error(codes.Internal, err.Error())
+		}
+		klog.Infof("Deleted machine %q (%q)", req.Machine.Name, id)
+		return &driver.DeleteMachineResponse{}, nil
+	default:
+		return nil, status.Error(codes.Internal, "error finding machine to delete because more than one search result")
+	}
 }
 
 // GetMachineStatus handles a machine get status request
@@ -101,11 +173,25 @@ func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineR
 //
 // The request should return a NOT_FOUND (5) status error code if the machine is not existing
 func (p *Provider) GetMachineStatus(ctx context.Context, req *driver.GetMachineStatusRequest) (*driver.GetMachineStatusResponse, error) {
-	// Log messages to track start and end of request
 	klog.V(2).Infof("Get request has been recieved for %q", req.Machine.Name)
+	m, err := p.initDriver(req.Secret)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	id := decodeMachineID(req.Machine.Spec.ProviderID)
+
+	resp, err := m.MachineGet(id)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
 	defer klog.V(2).Infof("Machine get request has been processed successfully for %q", req.Machine.Name)
 
-	return &driver.GetMachineStatusResponse{}, status.Error(codes.Unimplemented, "")
+	return &driver.GetMachineStatusResponse{
+		ProviderID: encodeMachineID(*resp.Machine.Partition.ID, *resp.Machine.ID),
+		NodeName:   *resp.Machine.Allocation.Name,
+	}, nil
 }
 
 // ListMachines lists all the machines possibilly created by a providerSpec
@@ -122,11 +208,63 @@ func (p *Provider) GetMachineStatus(ctx context.Context, req *driver.GetMachineS
 //                                           for all machine's who where possibilly created by this ProviderSpec
 //
 func (p *Provider) ListMachines(ctx context.Context, req *driver.ListMachinesRequest) (*driver.ListMachinesResponse, error) {
-	// Log messages to track start and end of request
 	klog.V(2).Infof("List machines request has been recieved for %q", req.MachineClass.Name)
-	defer klog.V(2).Infof("List machines request has been recieved for %q", req.MachineClass.Name)
+	providerSpec, err := decodeProviderSpecAndSecret(req.MachineClass, req.Secret)
+	if err != nil {
+		return nil, err
+	}
 
-	return &driver.ListMachinesResponse{}, status.Error(codes.Unimplemented, "")
+	m, err := p.initDriver(req.Secret)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	listOfVMs := make(map[string]string)
+
+	clusterName := ""
+	nodeRole := ""
+
+	for _, key := range providerSpec.Tags {
+		if strings.Contains(key, "kubernetes.io/cluster/") {
+			clusterName = key
+		} else if strings.Contains(key, "kubernetes.io/role/") {
+			nodeRole = key
+		}
+	}
+
+	if clusterName == "" || nodeRole == "" {
+		return &driver.ListMachinesResponse{MachineList: listOfVMs}, nil
+	}
+
+	findRequest := &metalgo.MachineFindRequest{
+		AllocationProject: &providerSpec.Project,
+		PartitionID:       &providerSpec.Partition,
+		NetworkIDs:        []string{providerSpec.Network},
+	}
+	resp, err := m.MachineFind(findRequest)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	for _, m := range resp.Machines {
+		matchedCluster := false
+		matchedRole := false
+		for _, tag := range m.Tags {
+			switch tag {
+			case clusterName:
+				matchedCluster = true
+			case nodeRole:
+				matchedRole = true
+			}
+		}
+		if matchedCluster && matchedRole {
+			listOfVMs[*m.ID] = *m.Allocation.Hostname
+		}
+	}
+
+	defer klog.V(2).Infof("List machines request has been recieved for %q, found %v", req.MachineClass.Name, listOfVMs)
+
+	return &driver.ListMachinesResponse{MachineList: listOfVMs}, nil
 }
 
 // GetVolumeIDs returns a list of Volume IDs for all PV Specs for whom an provider volume was found
