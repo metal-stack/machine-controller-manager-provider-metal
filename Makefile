@@ -14,7 +14,7 @@
 
 BINARY_PATH         := bin/
 COVERPROFILE        := test/output/coverprofile.out
-IMAGE_REPOSITORY    := metal-stack/machine-controller-manager-metal
+IMAGE_REPOSITORY    := metalstack/machine-controller-manager-provider-metal
 IMAGE_TAG           := $(or ${GITHUB_TAG_NAME}, latest)
 PROVIDER_NAME       := MetalProvider
 PROJECT_NAME        := gardener
@@ -74,6 +74,7 @@ docker-image:
 	@docker build -t $(IMAGE_REPOSITORY):$(IMAGE_TAG) .
 
 .PHONY: docker-push
+docker-push:
 	@docker push $(IMAGE_REPOSITORY):$(IMAGE_TAG)
 
 .PHONY: rename-binaries
