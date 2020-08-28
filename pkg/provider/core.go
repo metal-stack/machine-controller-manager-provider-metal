@@ -19,13 +19,18 @@ package provider
 
 import (
 	"context"
+	"encoding/json"
 	"strings"
 
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/driver"
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/machinecodes/codes"
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/machinecodes/status"
 	metalgo "github.com/metal-stack/metal-go"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog"
+
+	api "github.com/metal-stack/machine-controller-manager-provider-metal/pkg/provider/apis"
+	metalv1alpha1 "github.com/metal-stack/machine-controller-manager-provider-metal/pkg/provider/migration/legacy-api/machine/v1alpha1"
 )
 
 // NOTE
@@ -60,7 +65,7 @@ import (
 // This logic is used by safety controller to delete orphan VMs which are not backed by any machine CRD
 //
 func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineRequest) (*driver.CreateMachineResponse, error) {
-	klog.V(2).Infof("Machine creation request has been recieved for %q", req.Machine.Name)
+	klog.V(2).Infof("machine creation request has been recieved for %q", req.Machine.Name)
 	providerSpec, err := decodeProviderSpecAndSecret(req.MachineClass, req.Secret)
 	if err != nil {
 		klog.Error(err.Error())
@@ -95,11 +100,11 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 
 	mcr, err := m.MachineCreate(createRequest)
 	if err != nil {
-		klog.Errorf("Could not create machine: %v", err)
+		klog.Errorf("could not create machine: %v", err)
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	klog.V(2).Infof("Machine creation request has been processed for %q", req.Machine.Name)
+	klog.V(2).Infof("machine creation request has been processed for %q", req.Machine.Name)
 
 	return &driver.CreateMachineResponse{
 		ProviderID: encodeMachineID(providerSpec.Partition, *mcr.Machine.ID),
@@ -119,7 +124,7 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 //                                                Could be helpful to continue operations in future requests.
 //
 func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineRequest) (*driver.DeleteMachineResponse, error) {
-	klog.V(2).Infof("Machine deletion request has been recieved for %q", req.Machine.Name)
+	klog.V(2).Infof("machine deletion request has been recieved for %q", req.Machine.Name)
 	providerSpec, err := decodeProviderSpecAndSecret(req.MachineClass, req.Secret)
 	if err != nil {
 		klog.Error(err.Error())
@@ -155,7 +160,7 @@ func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineR
 			klog.Error(err.Error())
 			return nil, status.Error(codes.Internal, err.Error())
 		}
-		klog.Infof("Deleted machine %q (%q)", req.Machine.Name, id)
+		klog.Infof("deleted machine %q (%q)", req.Machine.Name, id)
 		return &driver.DeleteMachineResponse{}, nil
 	default:
 		klog.Errorf("error finding machine to delete because more than one search result")
@@ -180,7 +185,7 @@ func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineR
 //
 // The request should return a NOT_FOUND (5) status error code if the machine is not existing
 func (p *Provider) GetMachineStatus(ctx context.Context, req *driver.GetMachineStatusRequest) (*driver.GetMachineStatusResponse, error) {
-	klog.V(2).Infof("Get request has been recieved for %q", req.Machine.Name)
+	klog.V(2).Infof("get request has been recieved for %q", req.Machine.Name)
 	m, err := p.initDriver(req.Secret)
 	if err != nil {
 		klog.Error(err.Error())
@@ -189,13 +194,17 @@ func (p *Provider) GetMachineStatus(ctx context.Context, req *driver.GetMachineS
 
 	id := decodeMachineID(req.Machine.Spec.ProviderID)
 
+	if id == "" {
+		return nil, status.Error(codes.NotFound, "machine not found, not yet created")
+	}
+
 	resp, err := m.MachineGet(id)
 	if err != nil {
 		klog.Error(err.Error())
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	klog.V(2).Infof("Machine get request has been processed successfully for %q", req.Machine.Name)
+	klog.V(2).Infof("machine get request has been processed successfully for %q", req.Machine.Name)
 
 	return &driver.GetMachineStatusResponse{
 		ProviderID: encodeMachineID(*resp.Machine.Partition.ID, *resp.Machine.ID),
@@ -217,9 +226,10 @@ func (p *Provider) GetMachineStatus(ctx context.Context, req *driver.GetMachineS
 //                                           for all machine's who where possibilly created by this ProviderSpec
 //
 func (p *Provider) ListMachines(ctx context.Context, req *driver.ListMachinesRequest) (*driver.ListMachinesResponse, error) {
-	klog.V(2).Infof("List machines request has been recieved for %q", req.MachineClass.Name)
+	klog.V(2).Infof("list machines request has been recieved for %q", req.MachineClass.Name)
 	providerSpec, err := decodeProviderSpecAndSecret(req.MachineClass, req.Secret)
 	if err != nil {
+		klog.Error(err.Error())
 		return nil, err
 	}
 
@@ -243,6 +253,7 @@ func (p *Provider) ListMachines(ctx context.Context, req *driver.ListMachinesReq
 	}
 
 	if clusterName == "" || nodeRole == "" {
+		klog.V(2).Infof("list machines request has been processed successfully for %q, found %v", req.MachineClass.Name, listOfVMs)
 		return &driver.ListMachinesResponse{MachineList: listOfVMs}, nil
 	}
 
@@ -273,7 +284,7 @@ func (p *Provider) ListMachines(ctx context.Context, req *driver.ListMachinesReq
 		}
 	}
 
-	klog.V(2).Infof("List machines request has been recieved for %q, found %v", req.MachineClass.Name, listOfVMs)
+	klog.V(2).Infof("list machines request has been processed successfully for %q, found %v", req.MachineClass.Name, listOfVMs)
 
 	return &driver.ListMachinesResponse{MachineList: listOfVMs}, nil
 }
@@ -292,4 +303,69 @@ func (p *Provider) GetVolumeIDs(ctx context.Context, req *driver.GetVolumeIDsReq
 	// klog.V(2).Infof("GetVolumeIDs request has been processed successfully for %q", req.PVSpecs)
 
 	return &driver.GetVolumeIDsResponse{}, status.Error(codes.Unimplemented, "")
+}
+
+// GenerateMachineClassForMigration helps in migration of one kind of machineClass CR to another kind.
+// For instance an machineClass custom resource of `AWSMachineClass` to `MachineClass`.
+// Implement this functionality only if something like this is desired in your setup.
+// If you don't require this functionality leave is as is. (return Unimplemented)
+//
+// The following are the tasks typically expected out of this method
+// 1. Validate if the incoming classSpec is valid one for migration (e.g. has the right kind).
+// 2. Migrate/Copy over all the fields/spec from req.ProviderSpecificMachineClass to req.MachineClass
+// For an example refer
+//		https://github.com/prashanth26/machine-controller-manager-provider-gcp/blob/migration/pkg/gcp/machine_controller.go#L222-L233
+//
+// REQUEST PARAMETERS (driver.GenerateMachineClassForMigration)
+// ProviderSpecificMachineClass    interface{}                             ProviderSpecificMachineClass is provider specfic machine class object (E.g. AWSMachineClass). Typecasting is required here.
+// MachineClass 				   *v1alpha1.MachineClass                  MachineClass is the machine class object that is to be filled up by this method.
+// ClassSpec                       *v1alpha1.ClassSpec                     Somemore classSpec details useful while migration.
+//
+// RESPONSE PARAMETERS (driver.GenerateMachineClassForMigration)
+// NONE
+//
+func (p *Provider) GenerateMachineClassForMigration(ctx context.Context, req *driver.GenerateMachineClassForMigrationRequest) (*driver.GenerateMachineClassForMigrationResponse, error) {
+	// Log messages to track start and end of request
+	klog.V(2).Infof("MigrateMachineClass request has been recieved for %q", req.ClassSpec)
+
+	metalMachineClass := req.ProviderSpecificMachineClass.(*metalv1alpha1.MetalMachineClass)
+
+	// Check if incoming CR is valid CR for migration
+	// In this case, the MachineClassKind to be matching
+	if req.ClassSpec.Kind != "MetalMachineClass" {
+		err := status.Error(codes.Internal, "Migration cannot be done for this machineClass kind")
+		klog.Error(err.Error())
+		return nil, err
+	}
+
+	providerSpec := &api.MetalProviderSpec{
+		Partition: metalMachineClass.Spec.Partition,
+		Size:      metalMachineClass.Spec.Size,
+		Image:     metalMachineClass.Spec.Image,
+		Project:   metalMachineClass.Spec.Project,
+		Network:   metalMachineClass.Spec.Network,
+		Tags:      metalMachineClass.Spec.Tags,
+		SSHKeys:   metalMachineClass.Spec.SSHKeys,
+		UserData:  metalMachineClass.Spec.UserData,
+	}
+
+	providerSpecMarshal, err := json.Marshal(providerSpec)
+	if err != nil {
+		klog.Error(err.Error())
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	// Migrate finalizers, labels, annotations
+	req.MachineClass.Name = metalMachineClass.Name
+	req.MachineClass.Labels = metalMachineClass.Labels
+	req.MachineClass.Annotations = metalMachineClass.Annotations
+	req.MachineClass.Finalizers = metalMachineClass.Finalizers
+	req.MachineClass.ProviderSpec = runtime.RawExtension{
+		Raw: providerSpecMarshal,
+	}
+	req.MachineClass.SecretRef = metalMachineClass.Spec.SecretRef
+	req.MachineClass.Provider = "metal"
+
+	klog.V(2).Infof("MigrateMachineClass request has been processed successfully for %q", req.ClassSpec)
+	return &driver.GenerateMachineClassForMigrationResponse{}, nil
 }
