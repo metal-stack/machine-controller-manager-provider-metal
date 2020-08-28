@@ -9,5 +9,4 @@ type MetalProviderSpec struct {
 	Network   string // required
 	Tags      []string
 	SSHKeys   []string
-	UserData  string
 }

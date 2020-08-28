@@ -84,11 +84,13 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 			NetworkID:   providerSpec.Network,
 		},
 	}
+	userData := strings.TrimSpace(string(req.Secret.Data["userData"]))
+
 	createRequest := &metalgo.MachineCreateRequest{
 		Description:   req.Machine.Name + " created by Gardener.",
 		Name:          req.Machine.Name,
 		Hostname:      req.Machine.Name,
-		UserData:      providerSpec.UserData,
+		UserData:      userData,
 		Size:          providerSpec.Size,
 		Project:       providerSpec.Project,
 		Networks:      networks,
@@ -346,7 +348,6 @@ func (p *Provider) GenerateMachineClassForMigration(ctx context.Context, req *dr
 		Network:   metalMachineClass.Spec.Network,
 		Tags:      metalMachineClass.Spec.Tags,
 		SSHKeys:   metalMachineClass.Spec.SSHKeys,
-		UserData:  metalMachineClass.Spec.UserData,
 	}
 
 	providerSpecMarshal, err := json.Marshal(providerSpec)

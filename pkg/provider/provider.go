@@ -43,9 +43,7 @@ func NewProvider(spi spi.SessionProviderInterface) driver.Driver {
 func (p *Provider) initDriver(secret *corev1.Secret) (*metalgo.Driver, error) {
 	token := strings.TrimSpace(string(secret.Data["metalAPIKey"]))
 	hmac := strings.TrimSpace(string(secret.Data["metalAPIHMac"]))
-
-	u := secret.Data["metalAPIURL"]
-	url := strings.TrimSpace(string(u))
+	url := strings.TrimSpace(string(secret.Data["metalAPIURL"]))
 
 	return metalgo.NewDriver(url, token, hmac)
 }
