@@ -63,11 +63,13 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 	klog.V(2).Infof("Machine creation request has been recieved for %q", req.Machine.Name)
 	providerSpec, err := decodeProviderSpecAndSecret(req.MachineClass, req.Secret)
 	if err != nil {
+		klog.Error(err.Error())
 		return nil, err
 	}
 
 	m, err := p.initDriver(req.Secret)
 	if err != nil {
+		klog.Error(err.Error())
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
@@ -97,7 +99,7 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	defer klog.V(2).Infof("Machine creation request has been processed for %q", req.Machine.Name)
+	klog.V(2).Infof("Machine creation request has been processed for %q", req.Machine.Name)
 
 	return &driver.CreateMachineResponse{
 		ProviderID: encodeMachineID(providerSpec.Partition, *mcr.Machine.ID),
@@ -120,11 +122,13 @@ func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineR
 	klog.V(2).Infof("Machine deletion request has been recieved for %q", req.Machine.Name)
 	providerSpec, err := decodeProviderSpecAndSecret(req.MachineClass, req.Secret)
 	if err != nil {
+		klog.Error(err.Error())
 		return nil, err
 	}
 
 	m, err := p.initDriver(req.Secret)
 	if err != nil {
+		klog.Error(err.Error())
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
@@ -137,6 +141,7 @@ func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineR
 
 	resp, err := m.MachineFind(mfr)
 	if err != nil {
+		klog.Error(err.Error())
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
@@ -147,11 +152,13 @@ func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineR
 	case 1:
 		_, err = m.MachineDelete(id)
 		if err != nil {
+			klog.Error(err.Error())
 			return nil, status.Error(codes.Internal, err.Error())
 		}
 		klog.Infof("Deleted machine %q (%q)", req.Machine.Name, id)
 		return &driver.DeleteMachineResponse{}, nil
 	default:
+		klog.Errorf("error finding machine to delete because more than one search result")
 		return nil, status.Error(codes.Internal, "error finding machine to delete because more than one search result")
 	}
 }
@@ -176,6 +183,7 @@ func (p *Provider) GetMachineStatus(ctx context.Context, req *driver.GetMachineS
 	klog.V(2).Infof("Get request has been recieved for %q", req.Machine.Name)
 	m, err := p.initDriver(req.Secret)
 	if err != nil {
+		klog.Error(err.Error())
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
@@ -183,10 +191,11 @@ func (p *Provider) GetMachineStatus(ctx context.Context, req *driver.GetMachineS
 
 	resp, err := m.MachineGet(id)
 	if err != nil {
+		klog.Error(err.Error())
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	defer klog.V(2).Infof("Machine get request has been processed successfully for %q", req.Machine.Name)
+	klog.V(2).Infof("Machine get request has been processed successfully for %q", req.Machine.Name)
 
 	return &driver.GetMachineStatusResponse{
 		ProviderID: encodeMachineID(*resp.Machine.Partition.ID, *resp.Machine.ID),
@@ -216,6 +225,7 @@ func (p *Provider) ListMachines(ctx context.Context, req *driver.ListMachinesReq
 
 	m, err := p.initDriver(req.Secret)
 	if err != nil {
+		klog.Error(err.Error())
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
@@ -243,6 +253,7 @@ func (p *Provider) ListMachines(ctx context.Context, req *driver.ListMachinesReq
 	}
 	resp, err := m.MachineFind(findRequest)
 	if err != nil {
+		klog.Error(err.Error())
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
@@ -262,7 +273,7 @@ func (p *Provider) ListMachines(ctx context.Context, req *driver.ListMachinesReq
 		}
 	}
 
-	defer klog.V(2).Infof("List machines request has been recieved for %q, found %v", req.MachineClass.Name, listOfVMs)
+	klog.V(2).Infof("List machines request has been recieved for %q, found %v", req.MachineClass.Name, listOfVMs)
 
 	return &driver.ListMachinesResponse{MachineList: listOfVMs}, nil
 }
@@ -278,7 +289,7 @@ func (p *Provider) ListMachines(ctx context.Context, req *driver.ListMachinesReq
 func (p *Provider) GetVolumeIDs(ctx context.Context, req *driver.GetVolumeIDsRequest) (*driver.GetVolumeIDsResponse, error) {
 	// Log messages to track start and end of request
 	klog.V(2).Infof("GetVolumeIDs request has been recieved for %q", req.PVSpecs)
-	defer klog.V(2).Infof("GetVolumeIDs request has been processed successfully for %q", req.PVSpecs)
+	// klog.V(2).Infof("GetVolumeIDs request has been processed successfully for %q", req.PVSpecs)
 
 	return &driver.GetVolumeIDsResponse{}, status.Error(codes.Unimplemented, "")
 }
