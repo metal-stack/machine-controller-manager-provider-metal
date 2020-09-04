@@ -16,7 +16,7 @@ jobs:
         args: run --timeout 3m
     - name: Build
       run: |
-        export GITHUB_TAG_NAME=${GITHUB_HEAD_REF##*/}
+        export GITHUB_TAG_NAME=${GITHUB_REF##*/}
         docker login -u ${{ secrets.DOCKER_HUB_USER }} -p ${{ secrets.DOCKER_HUB_TOKEN }}
         make docker-image
         make docker-push
