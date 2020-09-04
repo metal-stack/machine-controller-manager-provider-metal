@@ -1,0 +1,22 @@
+name: Build image from release tag
+
+on:
+  release:
+    types:
+      - published
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Lint
+      uses: actions-contrib/golangci-lint@master
+      with:
+        args: run --timeout 3m
+    - name: Build
+      run: |
+        export GITHUB_TAG_NAME=${GITHUB_HEAD_REF##*/}
+        docker login -u ${{ secrets.DOCKER_HUB_USER }} -p ${{ secrets.DOCKER_HUB_TOKEN }}
+        make docker-image
+        make docker-push

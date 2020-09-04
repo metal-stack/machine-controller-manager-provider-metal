@@ -18,8 +18,13 @@ limitations under the License.
 package provider
 
 import (
+	"strings"
+
+	corev1 "k8s.io/api/core/v1"
+
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/driver"
 	"github.com/metal-stack/machine-controller-manager-provider-metal/pkg/spi"
+	metalgo "github.com/metal-stack/metal-go"
 )
 
 // Provider is the struct that implements the driver interface
@@ -33,4 +38,12 @@ func NewProvider(spi spi.SessionProviderInterface) driver.Driver {
 	return &Provider{
 		SPI: spi,
 	}
+}
+
+func (p *Provider) initDriver(secret *corev1.Secret) (*metalgo.Driver, error) {
+	token := strings.TrimSpace(string(secret.Data["metalAPIKey"]))
+	hmac := strings.TrimSpace(string(secret.Data["metalAPIHMac"]))
+	url := strings.TrimSpace(string(secret.Data["metalAPIURL"]))
+
+	return metalgo.NewDriver(url, token, hmac)
 }

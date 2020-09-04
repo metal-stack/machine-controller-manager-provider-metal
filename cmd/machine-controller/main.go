@@ -38,7 +38,6 @@ import (
 )
 
 func main() {
-
 	s := options.NewMCServer()
 	s.AddFlags(pflag.CommandLine)
 
@@ -52,5 +51,4 @@ func main() {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(1)
 	}
-
 }

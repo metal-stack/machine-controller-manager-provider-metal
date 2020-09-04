@@ -14,8 +14,8 @@
 
 BINARY_PATH         := bin/
 COVERPROFILE        := test/output/coverprofile.out
-IMAGE_REPOSITORY    := metal-stack/machine-controller-manager-metal
-IMAGE_TAG           := $(shell cat VERSION)
+IMAGE_REPOSITORY    := metalstack/machine-controller-manager-provider-metal
+IMAGE_TAG           := $(or ${GITHUB_TAG_NAME}, latest)
 PROVIDER_NAME       := MetalProvider
 PROJECT_NAME        := gardener
 CONTROL_NAMESPACE  := default
@@ -63,6 +63,7 @@ build-local:
 
 .PHONY: build
 build:
+	@GO111MODULE=on go mod tidy
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
     -a \
     -o bin/machine-controller \
@@ -73,14 +74,9 @@ build:
 docker-image:
 	@docker build -t $(IMAGE_REPOSITORY):$(IMAGE_TAG) .
 
-.PHONY: docker-login
-docker-login:
-	@gcloud auth login
-
 .PHONY: docker-push
 docker-push:
-	@if ! docker images $(IMAGE_REPOSITORY) | awk '{ print $$2 }' | grep -q -F $(IMAGE_TAG); then echo "$(IMAGE_REPOSITORY) version $(IMAGE_TAG) is not yet built. Please run 'make docker-images'"; false; fi
-	@gcloud docker -- push $(IMAGE_REPOSITORY):$(IMAGE_TAG)
+	@docker push $(IMAGE_REPOSITORY):$(IMAGE_TAG)
 
 .PHONY: rename-binaries
 rename-binaries:
