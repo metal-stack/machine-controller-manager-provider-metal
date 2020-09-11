@@ -302,9 +302,19 @@ func (p *Provider) ListMachines(ctx context.Context, req *driver.ListMachinesReq
 func (p *Provider) GetVolumeIDs(ctx context.Context, req *driver.GetVolumeIDsRequest) (*driver.GetVolumeIDsResponse, error) {
 	// Log messages to track start and end of request
 	klog.V(2).Infof("GetVolumeIDs request has been recieved for %q", req.PVSpecs)
-	// klog.V(2).Infof("GetVolumeIDs request has been processed successfully for %q", req.PVSpecs)
+	volumeIDs := []string{}
+	specs := req.PVSpecs
+	for i := range specs {
+		spec := specs[i]
+		if spec.CSI == nil {
+			// Not a CSI volume
+			continue
+		}
 
-	return &driver.GetVolumeIDsResponse{}, status.Error(codes.Unimplemented, "")
+		volumeIDs = append(volumeIDs, spec.CSI.VolumeHandle)
+	}
+	klog.V(2).Infof("GetVolumeIDs request has been processed successfully for %q", req.PVSpecs)
+	return &driver.GetVolumeIDsResponse{VolumeIDs: volumeIDs}, nil
 }
 
 // GenerateMachineClassForMigration helps in migration of one kind of machineClass CR to another kind.
