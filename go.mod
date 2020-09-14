@@ -5,6 +5,7 @@ go 1.15
 require (
 	github.com/gardener/machine-controller-manager v0.34.0
 	github.com/metal-stack/metal-go v0.8.3
+	github.com/metal-stack/metal-lib v0.6.1
 	github.com/onsi/ginkgo v1.14.1
 	github.com/onsi/gomega v1.10.2
 	github.com/spf13/pflag v1.0.5

@@ -26,6 +26,7 @@ import (
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/machinecodes/codes"
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/machinecodes/status"
 	metalgo "github.com/metal-stack/metal-go"
+	"github.com/metal-stack/metal-lib/pkg/tag"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog"
 
@@ -243,26 +244,22 @@ func (p *Provider) ListMachines(ctx context.Context, req *driver.ListMachinesReq
 
 	listOfVMs := make(map[string]string)
 
-	clusterName := ""
-	nodeRole := ""
-
-	for _, key := range providerSpec.Tags {
-		if strings.Contains(key, "kubernetes.io/cluster/") {
-			clusterName = key
-		} else if strings.Contains(key, "kubernetes.io/role/") {
-			nodeRole = key
+	clusterIDTag := ""
+	for _, t := range providerSpec.Tags {
+		if strings.HasPrefix(t, tag.ClusterID) {
+			clusterIDTag = t
+			break
 		}
 	}
 
-	if clusterName == "" || nodeRole == "" {
-		klog.V(2).Infof("list machines request has been processed successfully for %q, found %v", req.MachineClass.Name, listOfVMs)
-		return &driver.ListMachinesResponse{MachineList: listOfVMs}, nil
+	if clusterIDTag == "" {
+		klog.V(2).Infof("list machines request failed because provider spec did not contain metal-stack cluster tag for %q", req.MachineClass.Name)
+		return nil, status.Error(codes.Internal, "list machines request failed because provider spec did not contain metal-stack cluster tag for")
 	}
 
 	findRequest := &metalgo.MachineFindRequest{
 		AllocationProject: &providerSpec.Project,
-		PartitionID:       &providerSpec.Partition,
-		NetworkIDs:        []string{providerSpec.Network},
+		Tags:              []string{clusterIDTag},
 	}
 	resp, err := m.MachineFind(findRequest)
 	if err != nil {
@@ -271,24 +268,30 @@ func (p *Provider) ListMachines(ctx context.Context, req *driver.ListMachinesReq
 	}
 
 	for _, m := range resp.Machines {
-		matchedCluster := false
-		matchedRole := false
-		for _, tag := range m.Tags {
-			switch tag {
-			case clusterName:
-				matchedCluster = true
-			case nodeRole:
-				matchedRole = true
-			}
+		if !stringSliceContains(m.Tags, "kubernetes.io/role=node") {
+			continue
 		}
-		if matchedCluster && matchedRole {
-			listOfVMs[*m.ID] = *m.Allocation.Hostname
+
+		if m.ID == nil || m.Partition == nil || m.Partition.ID == nil {
+			continue
 		}
+
+		providerID := encodeMachineID(*m.Partition.ID, *m.ID)
+		listOfVMs[providerID] = *m.Allocation.Hostname
 	}
 
 	klog.V(2).Infof("list machines request has been processed successfully for %q, found %v", req.MachineClass.Name, listOfVMs)
 
 	return &driver.ListMachinesResponse{MachineList: listOfVMs}, nil
+}
+
+func stringSliceContains(s []string, val string) bool {
+	for _, item := range s {
+		if item == val {
+			return true
+		}
+	}
+	return false
 }
 
 // GetVolumeIDs returns a list of Volume IDs for all PV Specs for whom an provider volume was found
