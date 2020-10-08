@@ -341,6 +341,7 @@ func (p *Provider) GetVolumeIDs(ctx context.Context, req *driver.GetVolumeIDsReq
 //
 func (p *Provider) GenerateMachineClassForMigration(ctx context.Context, req *driver.GenerateMachineClassForMigrationRequest) (*driver.GenerateMachineClassForMigrationResponse, error) {
 	// Log messages to track start and end of request
+	// FIXME: This code can be removed, it cannot get called by the MCM because we never were in-tree. This only works for in-tree providers.
 	klog.V(2).Infof("MigrateMachineClass request has been recieved for %q", req.ClassSpec)
 
 	metalMachineClass := req.ProviderSpecificMachineClass.(*metalv1alpha1.MetalMachineClass)
