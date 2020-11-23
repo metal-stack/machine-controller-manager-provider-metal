@@ -14,7 +14,7 @@
 
 BINARY_PATH         := bin/
 COVERPROFILE        := test/output/coverprofile.out
-IMAGE_REPOSITORY    := metalstack/machine-controller-manager-provider-metal
+IMAGE_REPOSITORY    := ghcr.io/metal-stack/machine-controller-manager-provider-metal
 IMAGE_TAG           := $(or ${GITHUB_TAG_NAME}, latest)
 PROVIDER_NAME       := MetalProvider
 PROJECT_NAME        := gardener
