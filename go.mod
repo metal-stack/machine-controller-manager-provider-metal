@@ -3,11 +3,11 @@ module github.com/metal-stack/machine-controller-manager-provider-metal
 go 1.15
 
 require (
-	github.com/gardener/machine-controller-manager v0.34.0
-	github.com/metal-stack/metal-go v0.8.3
-	github.com/metal-stack/metal-lib v0.6.1
-	github.com/onsi/ginkgo v1.14.1
-	github.com/onsi/gomega v1.10.2
+	github.com/gardener/machine-controller-manager v0.34.3
+	github.com/metal-stack/metal-go v0.11.1
+	github.com/metal-stack/metal-lib v0.6.6
+	github.com/onsi/ginkgo v1.14.2
+	github.com/onsi/gomega v1.10.3
 	github.com/spf13/pflag v1.0.5
 	k8s.io/api v0.0.0-20190918155943-95b840bb6a1f
 	k8s.io/apimachinery v0.0.0-20190913080033-27d36303b655
