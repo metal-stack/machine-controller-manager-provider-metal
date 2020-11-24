@@ -189,6 +189,25 @@ func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineR
 // The request should return a NOT_FOUND (5) status error code if the machine is not existing
 func (p *Provider) GetMachineStatus(ctx context.Context, req *driver.GetMachineStatusRequest) (*driver.GetMachineStatusResponse, error) {
 	klog.V(2).Infof("get request has been recieved for %q", req.Machine.Name)
+	providerSpec, err := decodeProviderSpecAndSecret(req.MachineClass, req.Secret)
+	if err != nil {
+		klog.Error(err.Error())
+		return nil, err
+	}
+
+	clusterIDTag := ""
+	for _, t := range providerSpec.Tags {
+		if strings.HasPrefix(t, tag.ClusterID) {
+			clusterIDTag = t
+			break
+		}
+	}
+
+	if clusterIDTag == "" {
+		klog.V(2).Infof("get request for machine %q failed because provider spec did not contain metal-stack cluster tag", req.Machine.Name)
+		return nil, status.Error(codes.Internal, "get machine request failed because provider spec did not contain metal-stack cluster tag for")
+	}
+
 	m, err := p.initDriver(req.Secret)
 	if err != nil {
 		klog.Error(err.Error())
@@ -208,6 +227,21 @@ func (p *Provider) GetMachineStatus(ctx context.Context, req *driver.GetMachineS
 	}
 
 	klog.V(2).Infof("machine get request has been processed successfully for %q", req.Machine.Name)
+
+	if resp.Machine.Allocation == nil {
+		return nil, status.Error(codes.NotFound, "machine already released")
+	}
+
+	found := false
+	for _, t := range resp.Machine.Tags {
+		if t == clusterIDTag {
+			found = true
+			break
+		}
+	}
+	if !found {
+		return nil, status.Error(codes.NotFound, "machine does not belong to this cluster anymore")
+	}
 
 	return &driver.GetMachineStatusResponse{
 		ProviderID: encodeMachineID(*resp.Machine.Partition.ID, *resp.Machine.ID),
