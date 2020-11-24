@@ -20,6 +20,7 @@ package provider
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"strings"
 
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/driver"
@@ -134,6 +135,12 @@ func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineR
 		return nil, err
 	}
 
+	clusterIDTag, err := extractClusterTag(providerSpec.Tags)
+	if err != nil {
+		klog.V(2).Infof("machine deletion request for machine %q failed because provider spec did not contain metal-stack cluster tag", req.Machine.Name)
+		return nil, status.Error(codes.Internal, "machine deletion request failed because provider spec did not contain metal-stack cluster tag for")
+	}
+
 	m, err := p.initDriver(req.Secret)
 	if err != nil {
 		klog.Error(err.Error())
@@ -145,6 +152,7 @@ func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineR
 	mfr := &metalgo.MachineFindRequest{
 		ID:                &id,
 		AllocationProject: &providerSpec.Project,
+		Tags:              []string{clusterIDTag},
 	}
 
 	resp, err := m.MachineFind(mfr)
@@ -189,6 +197,18 @@ func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineR
 // The request should return a NOT_FOUND (5) status error code if the machine is not existing
 func (p *Provider) GetMachineStatus(ctx context.Context, req *driver.GetMachineStatusRequest) (*driver.GetMachineStatusResponse, error) {
 	klog.V(2).Infof("get request has been recieved for %q", req.Machine.Name)
+	providerSpec, err := decodeProviderSpecAndSecret(req.MachineClass, req.Secret)
+	if err != nil {
+		klog.Error(err.Error())
+		return nil, err
+	}
+
+	clusterIDTag, err := extractClusterTag(providerSpec.Tags)
+	if err != nil {
+		klog.V(2).Infof("get request for machine %q failed because provider spec did not contain metal-stack cluster tag", req.Machine.Name)
+		return nil, status.Error(codes.Internal, "get machine request failed because provider spec did not contain metal-stack cluster tag for")
+	}
+
 	m, err := p.initDriver(req.Secret)
 	if err != nil {
 		klog.Error(err.Error())
@@ -205,6 +225,22 @@ func (p *Provider) GetMachineStatus(ctx context.Context, req *driver.GetMachineS
 	if err != nil {
 		klog.Error(err.Error())
 		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	if resp.Machine.Allocation == nil {
+		klog.V(2).Infof("machine already released: %q", req.Machine.Name)
+		return nil, status.Error(codes.NotFound, "machine already released")
+	}
+
+	machineClusterIDTag, err := extractClusterTag(resp.Machine.Tags)
+	if err != nil {
+		klog.V(2).Infof("machine has no cluster tag anymore: %q", req.Machine.Name)
+		return nil, status.Error(codes.NotFound, "machine has no cluster tag anymore")
+	}
+
+	if machineClusterIDTag != clusterIDTag {
+		klog.V(2).Infof("machine does not belong to this cluster anymore: %q", req.Machine.Name)
+		return nil, status.Error(codes.NotFound, "machine does not belong to this cluster anymore")
 	}
 
 	klog.V(2).Infof("machine get request has been processed successfully for %q", req.Machine.Name)
@@ -244,15 +280,8 @@ func (p *Provider) ListMachines(ctx context.Context, req *driver.ListMachinesReq
 
 	listOfVMs := make(map[string]string)
 
-	clusterIDTag := ""
-	for _, t := range providerSpec.Tags {
-		if strings.HasPrefix(t, tag.ClusterID) {
-			clusterIDTag = t
-			break
-		}
-	}
-
-	if clusterIDTag == "" {
+	clusterIDTag, err := extractClusterTag(providerSpec.Tags)
+	if err != nil {
 		klog.V(2).Infof("list machines request failed because provider spec did not contain metal-stack cluster tag for %q", req.MachineClass.Name)
 		return nil, status.Error(codes.Internal, "list machines request failed because provider spec did not contain metal-stack cluster tag for")
 	}
@@ -382,4 +411,13 @@ func (p *Provider) GenerateMachineClassForMigration(ctx context.Context, req *dr
 
 	klog.V(2).Infof("MigrateMachineClass request has been processed successfully for %q", req.ClassSpec)
 	return &driver.GenerateMachineClassForMigrationResponse{}, nil
+}
+
+func extractClusterTag(tags []string) (string, error) {
+	for _, t := range tags {
+		if strings.HasPrefix(t, tag.ClusterID) {
+			return t, nil
+		}
+	}
+	return "", fmt.Errorf("tag not found")
 }
