@@ -69,6 +69,7 @@ build:
     -o bin/machine-controller \
     -ldflags "-X main.version=${VERSION}-$(git rev-parse HEAD)" \
     cmd/machine-controller/main.go
+	strip bin/machine-controller
 
 .PHONY: docker-image
 docker-image:
