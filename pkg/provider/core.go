@@ -29,7 +29,7 @@ import (
 	metalgo "github.com/metal-stack/metal-go"
 	"github.com/metal-stack/metal-lib/pkg/tag"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	api "github.com/metal-stack/machine-controller-manager-provider-metal/pkg/provider/apis"
 	metalv1alpha1 "github.com/metal-stack/machine-controller-manager-provider-metal/pkg/provider/migration/legacy-api/machine/v1alpha1"
