@@ -19,7 +19,7 @@ require (
 	k8s.io/client-go v1.5.1 // indirect
 	k8s.io/cluster-bootstrap v0.17.14 // indirect
 	k8s.io/component-base v0.20.6
-	k8s.io/klog v1.0.0
+	k8s.io/klog/v2 v2.4.0
 )
 
 replace (
