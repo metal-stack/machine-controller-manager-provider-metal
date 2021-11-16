@@ -301,7 +301,7 @@ func (p *Provider) ListMachines(ctx context.Context, req *driver.ListMachinesReq
 			continue
 		}
 
-		if m.ID == nil || m.Partition == nil || m.Partition.ID == nil {
+		if m.ID == nil || m.Partition == nil || m.Partition.ID == nil || *m.Partition.ID == "" {
 			continue
 		}
 
