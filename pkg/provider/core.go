@@ -315,15 +315,6 @@ func (p *Provider) ListMachines(ctx context.Context, req *driver.ListMachinesReq
 	return &driver.ListMachinesResponse{MachineList: listOfVMs}, nil
 }
 
-func stringSliceContains(s []string, val string) bool {
-	for _, item := range s {
-		if item == val {
-			return true
-		}
-	}
-	return false
-}
-
 // GetVolumeIDs returns a list of Volume IDs for all PV Specs for whom an provider volume was found
 //
 // REQUEST PARAMETERS (driver.GetVolumeIDsRequest)
