@@ -27,6 +27,7 @@ import (
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/machinecodes/codes"
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/machinecodes/status"
 	metalgo "github.com/metal-stack/metal-go"
+	"github.com/metal-stack/metal-go/api/models"
 	"github.com/metal-stack/metal-lib/pkg/tag"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
@@ -67,7 +68,7 @@ import (
 // This logic is used by safety controller to delete orphan VMs which are not backed by any machine CRD
 //
 func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineRequest) (*driver.CreateMachineResponse, error) {
-	klog.V(2).Infof("machine creation request has been recieved for %q", req.Machine.Name)
+	klog.V(2).Infof("machine creation request has been received for %q", req.Machine.Name)
 	providerSpec, err := decodeProviderSpecAndSecret(req.MachineClass, req.Secret)
 	if err != nil {
 		klog.Error(err.Error())
@@ -128,7 +129,7 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 //                                                Could be helpful to continue operations in future requests.
 //
 func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineRequest) (*driver.DeleteMachineResponse, error) {
-	klog.V(2).Infof("machine deletion request has been recieved for %q", req.Machine.Name)
+	klog.V(2).Infof("machine deletion request has been received for %q", req.Machine.Name)
 	providerSpec, err := decodeProviderSpecAndSecret(req.MachineClass, req.Secret)
 	if err != nil {
 		klog.Error(err.Error())
@@ -196,7 +197,7 @@ func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineR
 //
 // The request should return a NOT_FOUND (5) status error code if the machine is not existing
 func (p *Provider) GetMachineStatus(ctx context.Context, req *driver.GetMachineStatusRequest) (*driver.GetMachineStatusResponse, error) {
-	klog.V(2).Infof("get request has been recieved for %q", req.Machine.Name)
+	klog.V(2).Infof("get request has been received for %q", req.Machine.Name)
 	providerSpec, err := decodeProviderSpecAndSecret(req.MachineClass, req.Secret)
 	if err != nil {
 		klog.Error(err.Error())
@@ -265,7 +266,7 @@ func (p *Provider) GetMachineStatus(ctx context.Context, req *driver.GetMachineS
 //                                           for all machine's who where possibilly created by this ProviderSpec
 //
 func (p *Provider) ListMachines(ctx context.Context, req *driver.ListMachinesRequest) (*driver.ListMachinesResponse, error) {
-	klog.V(2).Infof("list machines request has been recieved for %q", req.MachineClass.Name)
+	klog.V(2).Infof("list machines request has been received for %q", req.MachineClass.Name)
 	providerSpec, err := decodeProviderSpecAndSecret(req.MachineClass, req.Secret)
 	if err != nil {
 		klog.Error(err.Error())
@@ -297,11 +298,11 @@ func (p *Provider) ListMachines(ctx context.Context, req *driver.ListMachinesReq
 	}
 
 	for _, m := range resp.Machines {
-		if !stringSliceContains(m.Tags, "kubernetes.io/role=node") {
-			continue
+		if m.ID == nil || m.Allocation == nil || m.Allocation.Role == nil || m.Partition == nil || m.Partition.ID == nil || *m.Partition.ID == "" {
+			return nil, status.Error(codes.Internal, "machine response contains invalid fields")
 		}
 
-		if m.ID == nil || m.Partition == nil || m.Partition.ID == nil {
+		if *m.Allocation.Role != models.V1MachineAllocationRoleMachine {
 			continue
 		}
 
@@ -333,7 +334,7 @@ func stringSliceContains(s []string, val string) bool {
 //
 func (p *Provider) GetVolumeIDs(ctx context.Context, req *driver.GetVolumeIDsRequest) (*driver.GetVolumeIDsResponse, error) {
 	// Log messages to track start and end of request
-	klog.V(2).Infof("GetVolumeIDs request has been recieved for %q", req.PVSpecs)
+	klog.V(2).Infof("GetVolumeIDs request has been received for %q", req.PVSpecs)
 	volumeIDs := []string{}
 	specs := req.PVSpecs
 	for i := range specs {
@@ -370,7 +371,7 @@ func (p *Provider) GetVolumeIDs(ctx context.Context, req *driver.GetVolumeIDsReq
 //
 func (p *Provider) GenerateMachineClassForMigration(ctx context.Context, req *driver.GenerateMachineClassForMigrationRequest) (*driver.GenerateMachineClassForMigrationResponse, error) {
 	// Log messages to track start and end of request
-	klog.V(2).Infof("MigrateMachineClass request has been recieved for %q", req.ClassSpec)
+	klog.V(2).Infof("MigrateMachineClass request has been received for %q", req.ClassSpec)
 
 	metalMachineClass := req.ProviderSpecificMachineClass.(*metalv1alpha1.MetalMachineClass)
 
