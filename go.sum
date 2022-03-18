@@ -329,8 +329,8 @@ github.com/fsnotify/fsnotify v1.4.9/go.mod h1:znqG4EE+3YCdAaPaxE2ZRY/06pZUdp0tY4
 github.com/fsnotify/fsnotify v1.5.1 h1:mZcQUHVQUQWoPXXtuf9yuEXKudkV2sx1E06UadKWpgI=
 github.com/fsnotify/fsnotify v1.5.1/go.mod h1:T3375wBYaZdLLcVNkcVbzGHY7f1l/uK5T5Ai1i3InKU=
 github.com/fullsailor/pkcs7 v0.0.0-20190404230743-d7302db945fa/go.mod h1:KnogPXtdwXqoenmZCw6S+25EAm2MkxbG0deNDu4cbSA=
-github.com/gardener/machine-controller-manager v0.43.0 h1:8W3XbP1EWrywOfejWiqyVK6KZYM+d6ZCqRhIUT+hiBY=
-github.com/gardener/machine-controller-manager v0.43.0/go.mod h1:oMaIZMJ0pU6Z8j885v4a4+wxkzC1mpoqfqDUH34SQ58=
+github.com/gardener/machine-controller-manager v0.43.1 h1:Kdog/ElWL13DG36rvXa6fJF4jR0P7VLPeWTMoFBir+c=
+github.com/gardener/machine-controller-manager v0.43.1/go.mod h1:oMaIZMJ0pU6Z8j885v4a4+wxkzC1mpoqfqDUH34SQ58=
 github.com/garyburd/redigo v0.0.0-20150301180006-535138d7bcd7/go.mod h1:NR3MbYisc3/PwhQ00EMzDiPmrwpPxAn5GI05/YaO1SY=
 github.com/getkin/kin-openapi v0.76.0/go.mod h1:660oXbgy5JFMKreazJaQTw7o+X00qeSyhcnluiMv+Xg=
 github.com/ghodss/yaml v0.0.0-20150909031657-73d445a93680/go.mod h1:4dBDuWmgqj2HViK6kFavaiC9ZROes6MMH2rRYeMEF04=

@@ -3,7 +3,7 @@ module github.com/metal-stack/machine-controller-manager-provider-metal
 go 1.17
 
 require (
-	github.com/gardener/machine-controller-manager v0.43.0
+	github.com/gardener/machine-controller-manager v0.43.1
 	github.com/metal-stack/metal-go v0.16.3
 	github.com/metal-stack/metal-lib v0.9.0
 	github.com/onsi/ginkgo v1.16.5
