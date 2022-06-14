@@ -45,5 +45,6 @@ func (p *Provider) initDriver(secret *corev1.Secret) (*metalgo.Driver, error) {
 	hmac := strings.TrimSpace(string(secret.Data["metalAPIHMac"]))
 	url := strings.TrimSpace(string(secret.Data["metalAPIURL"]))
 
-	return metalgo.NewDriver(url, token, hmac)
+	_, driver, err := metalgo.NewDriver(url, token, hmac)
+	return driver, err
 }
