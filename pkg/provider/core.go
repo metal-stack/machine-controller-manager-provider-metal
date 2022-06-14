@@ -26,11 +26,12 @@ import (
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/driver"
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/machinecodes/codes"
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/machinecodes/status"
-	metalgo "github.com/metal-stack/metal-go"
+	"github.com/metal-stack/metal-go/api/client/machine"
 	"github.com/metal-stack/metal-go/api/models"
 	"github.com/metal-stack/metal-lib/pkg/tag"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/pointer"
 
 	api "github.com/metal-stack/machine-controller-manager-provider-metal/pkg/provider/apis"
 	metalv1alpha1 "github.com/metal-stack/machine-controller-manager-provider-metal/pkg/provider/migration/legacy-api/machine/v1alpha1"
@@ -75,35 +76,36 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 		return nil, err
 	}
 
-	m, err := p.initDriver(req.Secret)
+	m, err := p.initClient(req.Secret)
 	if err != nil {
 		klog.Error(err.Error())
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	networks := []metalgo.MachineAllocationNetwork{
-		{
-			Autoacquire: true,
-			NetworkID:   providerSpec.Network,
-		},
+	networks := []*models.V1MachineAllocationNetwork{}
+	net := models.V1MachineAllocationNetwork{
+		Autoacquire: pointer.BoolPtr(true),
+		Networkid:   &providerSpec.Network,
 	}
+	networks = append(networks, &net)
+
 	userData := strings.TrimSpace(string(req.Secret.Data["userData"]))
 
-	createRequest := &metalgo.MachineCreateRequest{
-		Description:   req.Machine.Name + " created by Gardener.",
-		Name:          req.Machine.Name,
-		Hostname:      req.Machine.Name,
-		UserData:      userData,
-		Size:          providerSpec.Size,
-		Project:       providerSpec.Project,
-		Networks:      networks,
-		Partition:     providerSpec.Partition,
-		Image:         providerSpec.Image,
-		Tags:          providerSpec.Tags,
-		SSHPublicKeys: providerSpec.SSHKeys,
+	createRequest := &models.V1MachineAllocateRequest{
+		Description: req.Machine.Name + " created by Gardener.",
+		Name:        req.Machine.Name,
+		Hostname:    req.Machine.Name,
+		UserData:    userData,
+		Sizeid:      &providerSpec.Size,
+		Projectid:   &providerSpec.Project,
+		Networks:    networks,
+		Partitionid: &providerSpec.Partition,
+		Imageid:     &providerSpec.Image,
+		Tags:        providerSpec.Tags,
+		SSHPubKeys:  providerSpec.SSHKeys,
 	}
 
-	mcr, err := m.MachineCreate(createRequest)
+	mcr, err := m.Machine().AllocateMachine(machine.NewAllocateMachineParams().WithBody(createRequest), nil)
 	if err != nil {
 		klog.Errorf("could not create machine: %v", err)
 		return nil, status.Error(codes.Internal, err.Error())
@@ -112,8 +114,8 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 	klog.V(2).Infof("machine creation request has been processed for %q", req.Machine.Name)
 
 	return &driver.CreateMachineResponse{
-		ProviderID: encodeMachineID(providerSpec.Partition, *mcr.Machine.ID),
-		NodeName:   *mcr.Machine.Allocation.Name,
+		ProviderID: encodeMachineID(providerSpec.Partition, *mcr.Payload.ID),
+		NodeName:   *mcr.Payload.Allocation.Name,
 	}, nil
 }
 
@@ -142,7 +144,7 @@ func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineR
 		return nil, status.Error(codes.Internal, "machine deletion request failed because provider spec did not contain metal-stack cluster tag for")
 	}
 
-	m, err := p.initDriver(req.Secret)
+	m, err := p.initClient(req.Secret)
 	if err != nil {
 		klog.Error(err.Error())
 		return nil, status.Error(codes.Internal, err.Error())
@@ -150,24 +152,25 @@ func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineR
 
 	id := decodeMachineID(req.Machine.Spec.ProviderID)
 
-	mfr := &metalgo.MachineFindRequest{
-		ID:                &id,
-		AllocationProject: &providerSpec.Project,
+	mfr := &models.V1MachineFindRequest{
+		ID:                id,
+		AllocationProject: providerSpec.Project,
 		Tags:              []string{clusterIDTag},
 	}
 
-	resp, err := m.MachineFind(mfr)
+	resp, err := m.Machine().FindMachines(machine.NewFindMachinesParams().WithBody(mfr), nil)
 	if err != nil {
 		klog.Error(err.Error())
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	switch len(resp.Machines) {
+	switch len(resp.Payload) {
 	case 0:
 		klog.Infof("no machine with id %q found in project %q, already deleted and therefore skipping deletion", id, providerSpec.Project)
 		return &driver.DeleteMachineResponse{}, nil
 	case 1:
-		_, err = m.MachineDelete(id)
+		_, err = m.Machine().DeleteMachine(machine.NewDeleteMachineParams().WithID(id), nil)
+
 		if err != nil {
 			klog.Error(err.Error())
 			return nil, status.Error(codes.Internal, err.Error())
@@ -210,7 +213,7 @@ func (p *Provider) GetMachineStatus(ctx context.Context, req *driver.GetMachineS
 		return nil, status.Error(codes.Internal, "get machine request failed because provider spec did not contain metal-stack cluster tag for")
 	}
 
-	m, err := p.initDriver(req.Secret)
+	m, err := p.initClient(req.Secret)
 	if err != nil {
 		klog.Error(err.Error())
 		return nil, status.Error(codes.Internal, err.Error())
@@ -222,18 +225,18 @@ func (p *Provider) GetMachineStatus(ctx context.Context, req *driver.GetMachineS
 		return nil, status.Error(codes.NotFound, "machine not found, not yet created")
 	}
 
-	resp, err := m.MachineGet(id)
+	resp, err := m.Machine().FindMachine(machine.NewFindMachineParams().WithID(id), nil)
 	if err != nil {
 		klog.Error(err.Error())
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	if resp.Machine.Allocation == nil {
+	if resp.Payload.Allocation == nil {
 		klog.V(2).Infof("machine already released: %q", req.Machine.Name)
 		return nil, status.Error(codes.NotFound, "machine already released")
 	}
 
-	machineClusterIDTag, err := extractClusterTag(resp.Machine.Tags)
+	machineClusterIDTag, err := extractClusterTag(resp.Payload.Tags)
 	if err != nil {
 		klog.V(2).Infof("machine has no cluster tag anymore: %q", req.Machine.Name)
 		return nil, status.Error(codes.NotFound, "machine has no cluster tag anymore")
@@ -247,8 +250,8 @@ func (p *Provider) GetMachineStatus(ctx context.Context, req *driver.GetMachineS
 	klog.V(2).Infof("machine get request has been processed successfully for %q", req.Machine.Name)
 
 	return &driver.GetMachineStatusResponse{
-		ProviderID: encodeMachineID(*resp.Machine.Partition.ID, *resp.Machine.ID),
-		NodeName:   *resp.Machine.Allocation.Name,
+		ProviderID: encodeMachineID(*resp.Payload.Partition.ID, *resp.Payload.ID),
+		NodeName:   *resp.Payload.Allocation.Name,
 	}, nil
 }
 
@@ -273,7 +276,7 @@ func (p *Provider) ListMachines(ctx context.Context, req *driver.ListMachinesReq
 		return nil, err
 	}
 
-	m, err := p.initDriver(req.Secret)
+	m, err := p.initClient(req.Secret)
 	if err != nil {
 		klog.Error(err.Error())
 		return nil, status.Error(codes.Internal, err.Error())
@@ -287,17 +290,17 @@ func (p *Provider) ListMachines(ctx context.Context, req *driver.ListMachinesReq
 		return nil, status.Error(codes.Internal, "list machines request failed because provider spec did not contain metal-stack cluster tag for")
 	}
 
-	findRequest := &metalgo.MachineFindRequest{
-		AllocationProject: &providerSpec.Project,
+	findRequest := &models.V1MachineFindRequest{
+		AllocationProject: providerSpec.Project,
 		Tags:              []string{clusterIDTag},
 	}
-	resp, err := m.MachineFind(findRequest)
+	resp, err := m.Machine().FindMachines(machine.NewFindMachinesParams().WithBody(findRequest), nil)
 	if err != nil {
 		klog.Error(err.Error())
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	for _, m := range resp.Machines {
+	for _, m := range resp.Payload {
 		if m.ID == nil || m.Allocation == nil || m.Allocation.Role == nil || m.Partition == nil || m.Partition.ID == nil || *m.Partition.ID == "" {
 			return nil, status.Error(codes.Internal, "machine response contains invalid fields")
 		}
