@@ -35,10 +35,12 @@ import (
 	"github.com/spf13/pflag"
 	"k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/logs"
+	"k8s.io/klog/v2"
 )
 
 func main() {
 	s := options.NewMCServer()
+	klog.InitFlags(nil)
 	s.AddFlags(pflag.CommandLine)
 
 	flag.InitFlags()
