@@ -169,7 +169,7 @@ func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineR
 		klog.Infof("no machine with id %q found in project %q, already deleted and therefore skipping deletion", id, providerSpec.Project)
 		return &driver.DeleteMachineResponse{}, nil
 	case 1:
-		_, err = m.Machine().DeleteMachine(machine.NewDeleteMachineParams().WithID(id), nil)
+		_, err = m.Machine().FreeMachine(machine.NewFreeMachineParams().WithID(id), nil)
 
 		if err != nil {
 			klog.Error(err.Error())
