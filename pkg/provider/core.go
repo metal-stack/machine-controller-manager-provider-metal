@@ -82,12 +82,12 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	networks := []*models.V1MachineAllocationNetwork{}
-	net := models.V1MachineAllocationNetwork{
-		Autoacquire: pointer.BoolPtr(true),
-		Networkid:   &providerSpec.Network,
+	networks := []*models.V1MachineAllocationNetwork{
+		{
+			Autoacquire: pointer.BoolPtr(true),
+			Networkid:   &providerSpec.Network,
+		},
 	}
-	networks = append(networks, &net)
 
 	userData := strings.TrimSpace(string(req.Secret.Data["userData"]))
 
