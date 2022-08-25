@@ -415,8 +415,8 @@ github.com/mattn/go-isatty v0.0.3/go.mod h1:M+lRXTBqGeGNdLjl/ufCoiOlB5xdOkqRJdNx
 github.com/matttproud/golang_protobuf_extensions v1.0.1/go.mod h1:D8He9yQNgCq6Z5Ld7szi9bcBfOoFv/3dc6xSMkL2PC0=
 github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369 h1:I0XW9+e1XWDxdcEniV4rQAIOPUGDq67JSCiRCgGCZLI=
 github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369/go.mod h1:BSXmuO+STAnVfrANrmjBb36TMTDstsz7MSK+HVaYKv4=
-github.com/metal-stack/machine-controller-manager v0.26.1-0.20220825125752-d428231a64c8 h1:wMkl9J2hPHb48UxgC13zxuKiMjiGv3hxWzj5bJRfXdM=
-github.com/metal-stack/machine-controller-manager v0.26.1-0.20220825125752-d428231a64c8/go.mod h1:Un8BoUdl+64nkkWfe69XwkwAJNRmSl9J6BTICI/qkbE=
+github.com/metal-stack/machine-controller-manager v0.26.1-0.20220825133433-3b0d661ce7d3 h1:RA011RDsndhy9CB4RgbLE+Uf175Gp7qqdGx4AS6GRq4=
+github.com/metal-stack/machine-controller-manager v0.26.1-0.20220825133433-3b0d661ce7d3/go.mod h1:Un8BoUdl+64nkkWfe69XwkwAJNRmSl9J6BTICI/qkbE=
 github.com/metal-stack/masterdata-api v0.8.12 h1:hfg+g0W1tzs/5mV9RG4+l6pAtH/SMaeEUQujx+50Z7U=
 github.com/metal-stack/masterdata-api v0.8.12/go.mod h1:le/cvZ9nvw9QQ/eVJSrO7rNdwMMuIrQxFalaIcv/GUg=
 github.com/metal-stack/metal-go v0.19.0 h1:5HTZUdyn2oihbXLhkPZzzGQUNJr7xN0Y8AaaHK2hXvo=

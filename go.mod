@@ -16,7 +16,7 @@ require (
 	k8s.io/utils v0.0.0-20220210201930-3a6ce19ff2f9
 )
 
-replace github.com/gardener/machine-controller-manager => github.com/metal-stack/machine-controller-manager v0.26.1-0.20220825125752-d428231a64c8
+replace github.com/gardener/machine-controller-manager => github.com/metal-stack/machine-controller-manager v0.26.1-0.20220825133433-3b0d661ce7d3
 
 require (
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
