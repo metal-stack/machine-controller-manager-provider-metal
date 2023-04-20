@@ -19,7 +19,6 @@ package provider
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -29,12 +28,8 @@ import (
 	"github.com/metal-stack/metal-go/api/client/machine"
 	"github.com/metal-stack/metal-go/api/models"
 	"github.com/metal-stack/metal-lib/pkg/tag"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/pointer"
-
-	api "github.com/metal-stack/machine-controller-manager-provider-metal/pkg/provider/apis"
-	metalv1alpha1 "github.com/metal-stack/machine-controller-manager-provider-metal/pkg/provider/migration/legacy-api/machine/v1alpha1"
 )
 
 // NOTE
@@ -56,18 +51,22 @@ import (
 //
 // RESPONSE PARAMETERS (driver.CreateMachineResponse)
 // ProviderID            string                   Unique identification of the VM at the cloud provider. This could be the same/different from req.MachineName.
-//                                                ProviderID typically matches with the node.Spec.ProviderID on the node object.
-//                                                Eg: gce://project-name/region/vm-ProviderID
+//
+//	ProviderID typically matches with the node.Spec.ProviderID on the node object.
+//	Eg: gce://project-name/region/vm-ProviderID
+//
 // NodeName              string                   Returns the name of the node-object that the VM register's with Kubernetes.
-//                                                This could be different from req.MachineName as well
+//
+//	This could be different from req.MachineName as well
+//
 // LastKnownState        string                   (Optional) Last known state of VM during the current operation.
-//                                                Could be helpful to continue operations in future requests.
+//
+//	Could be helpful to continue operations in future requests.
 //
 // OPTIONAL IMPLEMENTATION LOGIC
 // It is optionally expected by the safety controller to use an identification mechanisms to map the VM Created by a providerSpec.
 // These could be done using tag(s)/resource-groups etc.
 // This logic is used by safety controller to delete orphan VMs which are not backed by any machine CRD
-//
 func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineRequest) (*driver.CreateMachineResponse, error) {
 	klog.V(2).Infof("machine creation request has been received for %q", req.Machine.Name)
 	providerSpec, err := decodeProviderSpecAndSecret(req.MachineClass, req.Secret)
@@ -128,8 +127,8 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 //
 // RESPONSE PARAMETERS (driver.DeleteMachineResponse)
 // LastKnownState        bytes(blob)              (Optional) Last known state of VM during the current operation.
-//                                                Could be helpful to continue operations in future requests.
 //
+//	Could be helpful to continue operations in future requests.
 func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineRequest) (*driver.DeleteMachineResponse, error) {
 	klog.V(2).Infof("machine deletion request has been received for %q", req.Machine.Name)
 	providerSpec, err := decodeProviderSpecAndSecret(req.MachineClass, req.Secret)
@@ -193,10 +192,13 @@ func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineR
 //
 // RESPONSE PARAMETERS (driver.GetMachineStatueResponse)
 // ProviderID            string                   Unique identification of the VM at the cloud provider. This could be the same/different from req.MachineName.
-//                                                ProviderID typically matches with the node.Spec.ProviderID on the node object.
-//                                                Eg: gce://project-name/region/vm-ProviderID
+//
+//	ProviderID typically matches with the node.Spec.ProviderID on the node object.
+//	Eg: gce://project-name/region/vm-ProviderID
+//
 // NodeName             string                    Returns the name of the node-object that the VM register's with Kubernetes.
-//                                                This could be different from req.MachineName as well
+//
+//	This could be different from req.MachineName as well
 //
 // The request should return a NOT_FOUND (5) status error code if the machine is not existing
 func (p *Provider) GetMachineStatus(ctx context.Context, req *driver.GetMachineStatusRequest) (*driver.GetMachineStatusResponse, error) {
@@ -266,8 +268,8 @@ func (p *Provider) GetMachineStatus(ctx context.Context, req *driver.GetMachineS
 //
 // RESPONSE PARAMETERS (driver.ListMachinesResponse)
 // MachineList           map<string,string>  A map containing the keys as the MachineID and value as the MachineName
-//                                           for all machine's who where possibilly created by this ProviderSpec
 //
+//	for all machine's who where possibilly created by this ProviderSpec
 func (p *Provider) ListMachines(ctx context.Context, req *driver.ListMachinesRequest) (*driver.ListMachinesResponse, error) {
 	klog.V(2).Infof("list machines request has been received for %q", req.MachineClass.Name)
 	providerSpec, err := decodeProviderSpecAndSecret(req.MachineClass, req.Secret)
@@ -325,7 +327,6 @@ func (p *Provider) ListMachines(ctx context.Context, req *driver.ListMachinesReq
 //
 // RESPONSE PARAMETERS (driver.GetVolumeIDsResponse)
 // VolumeIDs             []string                             VolumeIDs is a repeated list of VolumeIDs.
-//
 func (p *Provider) GetVolumeIDs(ctx context.Context, req *driver.GetVolumeIDsRequest) (*driver.GetVolumeIDsResponse, error) {
 	// Log messages to track start and end of request
 	klog.V(2).Infof("GetVolumeIDs request has been received for %q", req.PVSpecs)
@@ -353,7 +354,8 @@ func (p *Provider) GetVolumeIDs(ctx context.Context, req *driver.GetVolumeIDsReq
 // 1. Validate if the incoming classSpec is valid one for migration (e.g. has the right kind).
 // 2. Migrate/Copy over all the fields/spec from req.ProviderSpecificMachineClass to req.MachineClass
 // For an example refer
-//		https://github.com/prashanth26/machine-controller-manager-provider-gcp/blob/migration/pkg/gcp/machine_controller.go#L222-L233
+//
+//	https://github.com/prashanth26/machine-controller-manager-provider-gcp/blob/migration/pkg/gcp/machine_controller.go#L222-L233
 //
 // REQUEST PARAMETERS (driver.GenerateMachineClassForMigration)
 // ProviderSpecificMachineClass    interface{}                             ProviderSpecificMachineClass is provider specfic machine class object (E.g. AWSMachineClass). Typecasting is required here.
@@ -362,50 +364,8 @@ func (p *Provider) GetVolumeIDs(ctx context.Context, req *driver.GetVolumeIDsReq
 //
 // RESPONSE PARAMETERS (driver.GenerateMachineClassForMigration)
 // NONE
-//
 func (p *Provider) GenerateMachineClassForMigration(ctx context.Context, req *driver.GenerateMachineClassForMigrationRequest) (*driver.GenerateMachineClassForMigrationResponse, error) {
-	// Log messages to track start and end of request
-	klog.V(2).Infof("MigrateMachineClass request has been received for %q", req.ClassSpec)
-
-	metalMachineClass := req.ProviderSpecificMachineClass.(*metalv1alpha1.MetalMachineClass)
-
-	// Check if incoming CR is valid CR for migration
-	// In this case, the MachineClassKind to be matching
-	if req.ClassSpec.Kind != "MetalMachineClass" {
-		err := status.Error(codes.Internal, "Migration cannot be done for this machineClass kind")
-		klog.Error(err.Error())
-		return nil, err
-	}
-
-	providerSpec := &api.MetalProviderSpec{
-		Partition: metalMachineClass.Spec.Partition,
-		Size:      metalMachineClass.Spec.Size,
-		Image:     metalMachineClass.Spec.Image,
-		Project:   metalMachineClass.Spec.Project,
-		Network:   metalMachineClass.Spec.Network,
-		Tags:      metalMachineClass.Spec.Tags,
-		SSHKeys:   metalMachineClass.Spec.SSHKeys,
-	}
-
-	providerSpecMarshal, err := json.Marshal(providerSpec)
-	if err != nil {
-		klog.Error(err.Error())
-		return nil, status.Error(codes.Internal, err.Error())
-	}
-
-	// Migrate finalizers, labels, annotations
-	req.MachineClass.Name = metalMachineClass.Name
-	req.MachineClass.Labels = metalMachineClass.Labels
-	req.MachineClass.Annotations = metalMachineClass.Annotations
-	req.MachineClass.Finalizers = metalMachineClass.Finalizers
-	req.MachineClass.ProviderSpec = runtime.RawExtension{
-		Raw: providerSpecMarshal,
-	}
-	req.MachineClass.SecretRef = metalMachineClass.Spec.SecretRef
-	req.MachineClass.Provider = "metal"
-
-	klog.V(2).Infof("MigrateMachineClass request has been processed successfully for %q", req.ClassSpec)
-	return &driver.GenerateMachineClassForMigrationResponse{}, nil
+	return nil, fmt.Errorf("machineclass migration is not supported anymore")
 }
 
 func extractClusterTag(tags []string) (string, error) {
