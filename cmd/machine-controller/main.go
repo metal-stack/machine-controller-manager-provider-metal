@@ -30,7 +30,7 @@ import (
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/app/options"
 	_ "github.com/gardener/machine-controller-manager/pkg/util/reflector/prometheus" // for reflector metric registration
 	_ "github.com/gardener/machine-controller-manager/pkg/util/workqueue/prometheus" // for workqueue metric registration
-	cp "github.com/metal-stack/machine-controller-manager-provider-metal/pkg/provider"
+	cp "github.com/metal-stack/machine-controller-manager-provider-metal/pkg/metal"
 	"github.com/metal-stack/machine-controller-manager-provider-metal/pkg/spi"
 	"github.com/spf13/pflag"
 	"k8s.io/component-base/cli/flag"
