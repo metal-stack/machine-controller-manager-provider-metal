@@ -27,9 +27,9 @@ import (
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/machinecodes/status"
 	"github.com/metal-stack/metal-go/api/client/machine"
 	"github.com/metal-stack/metal-go/api/models"
+	"github.com/metal-stack/metal-lib/pkg/pointer"
 	"github.com/metal-stack/metal-lib/pkg/tag"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/pointer"
 )
 
 // NOTE
@@ -83,7 +83,7 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 
 	networks := []*models.V1MachineAllocationNetwork{
 		{
-			Autoacquire: pointer.BoolPtr(true),
+			Autoacquire: pointer.Pointer(true),
 			Networkid:   &providerSpec.Network,
 		},
 	}
