@@ -48,7 +48,7 @@ jobs:
         [ "${GITHUB_EVENT_NAME}" == 'push' ] && echo "tag=latest" >> $GITHUB_ENV || true
 
     - name: Build and push image
-      uses: docker/build-push-action@v2
+      uses: docker/build-push-action@v4
       with:
         context: .
         push: true
