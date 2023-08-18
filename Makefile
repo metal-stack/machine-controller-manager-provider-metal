@@ -21,6 +21,7 @@ PROJECT_NAME        := gardener
 CONTROL_NAMESPACE  := default
 CONTROL_KUBECONFIG := dev/target-kubeconfig.yaml
 TARGET_KUBECONFIG  := dev/target-kubeconfig.yaml
+VERSION            := $(or ${VERSION},$(shell git describe --tags --exact-match 2> /dev/null || git symbolic-ref -q --short HEAD || git rev-parse --short HEAD))
 
 #########################################
 # Rules for starting machine-controller locally
@@ -67,7 +68,7 @@ build:
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
     -a \
     -o bin/machine-controller \
-    -ldflags "-X main.version=${VERSION}-$(git rev-parse HEAD)" \
+    -ldflags "-X main.version=${VERSION}" \
     cmd/machine-controller/main.go
 	strip bin/machine-controller
 

@@ -89,6 +89,12 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 		return nil, err
 	}
 
+	clusterIDTag, ok := tag.NewTagMap(providerSpec.Tags).Value(tag.ClusterID)
+	if !ok {
+		klog.V(2).Infof("machine create request for machine %q failed because provider spec did not contain metal-stack cluster tag", req.Machine.Name)
+		return nil, status.Error(codes.Internal, "machine create request failed because provider spec did not contain metal-stack cluster tag")
+	}
+
 	if timestamp := machineCreateHistory[req.Machine.Name]; time.Since(timestamp) < machineCreateBackoff {
 		return nil, status.Error(codes.Internal, "backing off from machine creation because machine with this name was only created seconds ago...")
 	}
@@ -109,17 +115,18 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 	userData := strings.TrimSpace(string(req.Secret.Data["userData"]))
 
 	createRequest := &models.V1MachineAllocateRequest{
-		Description: req.Machine.Name + " created by Gardener.",
-		Name:        req.Machine.Name,
-		Hostname:    req.Machine.Name,
-		UserData:    userData,
-		Sizeid:      &providerSpec.Size,
-		Projectid:   &providerSpec.Project,
-		Networks:    networks,
-		Partitionid: &providerSpec.Partition,
-		Imageid:     &providerSpec.Image,
-		Tags:        providerSpec.Tags,
-		SSHPubKeys:  providerSpec.SSHKeys,
+		Description:   req.Machine.Name + " created by Gardener.",
+		Name:          req.Machine.Name,
+		Hostname:      req.Machine.Name,
+		UserData:      userData,
+		Sizeid:        &providerSpec.Size,
+		Projectid:     &providerSpec.Project,
+		Networks:      networks,
+		Partitionid:   &providerSpec.Partition,
+		Imageid:       &providerSpec.Image,
+		Tags:          providerSpec.Tags,
+		SSHPubKeys:    providerSpec.SSHKeys,
+		PlacementTags: []string{fmt.Sprintf("%s=%s", tag.ClusterID, clusterIDTag)},
 	}
 
 	mcr, err := m.Machine().AllocateMachine(machine.NewAllocateMachineParams().WithBody(createRequest), nil)
@@ -157,10 +164,10 @@ func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineR
 		return nil, err
 	}
 
-	clusterIDTag, err := extractClusterTag(providerSpec.Tags)
-	if err != nil {
+	clusterIDTag, ok := tag.NewTagMap(providerSpec.Tags).Value(tag.ClusterID)
+	if !ok {
 		klog.V(2).Infof("machine deletion request for machine %q failed because provider spec did not contain metal-stack cluster tag", req.Machine.Name)
-		return nil, status.Error(codes.Internal, "machine deletion request failed because provider spec did not contain metal-stack cluster tag for")
+		return nil, status.Error(codes.Internal, "machine deletion request failed because provider spec did not contain metal-stack cluster tag")
 	}
 
 	m, err := p.initClient(req.Secret)
@@ -229,10 +236,10 @@ func (p *Provider) GetMachineStatus(ctx context.Context, req *driver.GetMachineS
 		return nil, err
 	}
 
-	clusterIDTag, err := extractClusterTag(providerSpec.Tags)
-	if err != nil {
+	clusterIDTag, ok := tag.NewTagMap(providerSpec.Tags).Value(tag.ClusterID)
+	if !ok {
 		klog.V(2).Infof("get request for machine %q failed because provider spec did not contain metal-stack cluster tag", req.Machine.Name)
-		return nil, status.Error(codes.Internal, "get machine request failed because provider spec did not contain metal-stack cluster tag for")
+		return nil, status.Error(codes.Internal, "get machine request failed because provider spec did not contain metal-stack cluster tag")
 	}
 
 	m, err := p.initClient(req.Secret)
@@ -258,8 +265,8 @@ func (p *Provider) GetMachineStatus(ctx context.Context, req *driver.GetMachineS
 		return nil, status.Error(codes.NotFound, "machine already released")
 	}
 
-	machineClusterIDTag, err := extractClusterTag(resp.Payload.Tags)
-	if err != nil {
+	machineClusterIDTag, ok := tag.NewTagMap(resp.Payload.Tags).Value(tag.ClusterID)
+	if !ok {
 		klog.V(2).Infof("machine has no cluster tag anymore: %q", req.Machine.Name)
 		return nil, status.Error(codes.NotFound, "machine has no cluster tag anymore")
 	}
@@ -306,10 +313,10 @@ func (p *Provider) ListMachines(ctx context.Context, req *driver.ListMachinesReq
 
 	listOfVMs := make(map[string]string)
 
-	clusterIDTag, err := extractClusterTag(providerSpec.Tags)
-	if err != nil {
+	clusterIDTag, ok := tag.NewTagMap(providerSpec.Tags).Value(tag.ClusterID)
+	if !ok {
 		klog.V(2).Infof("list machines request failed because provider spec did not contain metal-stack cluster tag for %q", req.MachineClass.Name)
-		return nil, status.Error(codes.Internal, "list machines request failed because provider spec did not contain metal-stack cluster tag for")
+		return nil, status.Error(codes.Internal, "list machines request failed because provider spec did not contain metal-stack cluster tag")
 	}
 
 	findRequest := &models.V1MachineFindRequest{
@@ -427,13 +434,4 @@ func (p *Provider) GenerateMachineClassForMigration(ctx context.Context, req *dr
 
 	klog.V(2).Infof("MigrateMachineClass request has been processed successfully for %q", req.ClassSpec)
 	return &driver.GenerateMachineClassForMigrationResponse{}, nil
-}
-
-func extractClusterTag(tags []string) (string, error) {
-	for _, t := range tags {
-		if strings.HasPrefix(t, tag.ClusterID) {
-			return t, nil
-		}
-	}
-	return "", fmt.Errorf("tag not found")
 }
