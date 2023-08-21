@@ -181,7 +181,7 @@ func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineR
 	mfr := &models.V1MachineFindRequest{
 		ID:                id,
 		AllocationProject: providerSpec.Project,
-		Tags:              []string{clusterIDTag},
+		Tags:              []string{fmt.Sprintf("%s=%s", tag.ClusterID, clusterIDTag)},
 	}
 
 	resp, err := m.Machine().FindMachines(machine.NewFindMachinesParams().WithBody(mfr), nil)
@@ -321,7 +321,7 @@ func (p *Provider) ListMachines(ctx context.Context, req *driver.ListMachinesReq
 
 	findRequest := &models.V1MachineFindRequest{
 		AllocationProject: providerSpec.Project,
-		Tags:              []string{clusterIDTag},
+		Tags:              []string{fmt.Sprintf("%s=%s", tag.ClusterID, clusterIDTag)},
 	}
 	resp, err := m.Machine().FindMachines(machine.NewFindMachinesParams().WithBody(findRequest), nil)
 	if err != nil {
