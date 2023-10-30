@@ -8,8 +8,8 @@ import (
 	"github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/machinecodes/codes"
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/machinecodes/status"
-	api "github.com/metal-stack/machine-controller-manager-provider-metal/pkg/provider/apis"
-	"github.com/metal-stack/machine-controller-manager-provider-metal/pkg/provider/apis/validation"
+	api "github.com/metal-stack/machine-controller-manager-provider-metal/pkg/metal/apis"
+	"github.com/metal-stack/machine-controller-manager-provider-metal/pkg/metal/apis/validation"
 	corev1 "k8s.io/api/core/v1"
 )
 

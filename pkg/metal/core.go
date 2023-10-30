@@ -19,7 +19,6 @@ package provider
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -29,13 +28,9 @@ import (
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/machinecodes/status"
 	"github.com/metal-stack/metal-go/api/client/machine"
 	"github.com/metal-stack/metal-go/api/models"
+	"github.com/metal-stack/metal-lib/pkg/pointer"
 	"github.com/metal-stack/metal-lib/pkg/tag"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/pointer"
-
-	api "github.com/metal-stack/machine-controller-manager-provider-metal/pkg/provider/apis"
-	metalv1alpha1 "github.com/metal-stack/machine-controller-manager-provider-metal/pkg/provider/migration/legacy-api/machine/v1alpha1"
 )
 
 const (
@@ -107,7 +102,7 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 
 	networks := []*models.V1MachineAllocationNetwork{
 		{
-			Autoacquire: pointer.BoolPtr(true),
+			Autoacquire: pointer.Pointer(true),
 			Networkid:   &providerSpec.Network,
 		},
 	}
@@ -392,46 +387,5 @@ func (p *Provider) GetVolumeIDs(ctx context.Context, req *driver.GetVolumeIDsReq
 // RESPONSE PARAMETERS (driver.GenerateMachineClassForMigration)
 // NONE
 func (p *Provider) GenerateMachineClassForMigration(ctx context.Context, req *driver.GenerateMachineClassForMigrationRequest) (*driver.GenerateMachineClassForMigrationResponse, error) {
-	// Log messages to track start and end of request
-	klog.V(2).Infof("MigrateMachineClass request has been received for %q", req.ClassSpec)
-
-	metalMachineClass := req.ProviderSpecificMachineClass.(*metalv1alpha1.MetalMachineClass)
-
-	// Check if incoming CR is valid CR for migration
-	// In this case, the MachineClassKind to be matching
-	if req.ClassSpec.Kind != "MetalMachineClass" {
-		err := status.Error(codes.Internal, "Migration cannot be done for this machineClass kind")
-		klog.Error(err.Error())
-		return nil, err
-	}
-
-	providerSpec := &api.MetalProviderSpec{
-		Partition: metalMachineClass.Spec.Partition,
-		Size:      metalMachineClass.Spec.Size,
-		Image:     metalMachineClass.Spec.Image,
-		Project:   metalMachineClass.Spec.Project,
-		Network:   metalMachineClass.Spec.Network,
-		Tags:      metalMachineClass.Spec.Tags,
-		SSHKeys:   metalMachineClass.Spec.SSHKeys,
-	}
-
-	providerSpecMarshal, err := json.Marshal(providerSpec)
-	if err != nil {
-		klog.Error(err.Error())
-		return nil, status.Error(codes.Internal, err.Error())
-	}
-
-	// Migrate finalizers, labels, annotations
-	req.MachineClass.Name = metalMachineClass.Name
-	req.MachineClass.Labels = metalMachineClass.Labels
-	req.MachineClass.Annotations = metalMachineClass.Annotations
-	req.MachineClass.Finalizers = metalMachineClass.Finalizers
-	req.MachineClass.ProviderSpec = runtime.RawExtension{
-		Raw: providerSpecMarshal,
-	}
-	req.MachineClass.SecretRef = metalMachineClass.Spec.SecretRef
-	req.MachineClass.Provider = "metal"
-
-	klog.V(2).Infof("MigrateMachineClass request has been processed successfully for %q", req.ClassSpec)
-	return &driver.GenerateMachineClassForMigrationResponse{}, nil
+	return nil, fmt.Errorf("machineclass migration is not supported anymore")
 }
