@@ -1,6 +1,6 @@
 module github.com/metal-stack/machine-controller-manager-provider-metal
 
-go 1.21
+go 1.22
 
 require (
 	github.com/gardener/machine-controller-manager v0.49.3
