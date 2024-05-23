@@ -362,7 +362,7 @@ func (p *Provider) GetVolumeIDs(ctx context.Context, req *driver.GetVolumeIDsReq
 		}
 
 		// use only the nguid part of the volumeHandle for lightbits volumes
-		if spec.CSI.Driver != "csi.lightbitslabs.com" {
+		if spec.CSI.Driver == "csi.lightbitslabs.com" {
 			// volumeHandle: mgmt:10.131.44.1:443,10.131.44.2:443,10.131.44.3:443|nguid:d22572da-a225-4578-ab1a-9318ac5155c3|proj:cd4eac58-46a5-4a31-b59f-2ec207baa817|scheme:grpcs
 			volumeHandleParts := strings.Split(spec.CSI.VolumeHandle, "|")
 			if len(volumeHandleParts) != 5 {
