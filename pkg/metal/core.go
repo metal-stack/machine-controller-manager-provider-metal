@@ -349,32 +349,47 @@ func (p *Provider) ListMachines(ctx context.Context, req *driver.ListMachinesReq
 //
 // RESPONSE PARAMETERS (driver.GetVolumeIDsResponse)
 // VolumeIDs             []string                             VolumeIDs is a repeated list of VolumeIDs.
-func (p *Provider) GetVolumeIDs(ctx context.Context, req *driver.GetVolumeIDsRequest) (*driver.GetVolumeIDsResponse, error) {
+func (p *Provider) GetVolumeIDs(_ context.Context, req *driver.GetVolumeIDsRequest) (*driver.GetVolumeIDsResponse, error) {
 	// Log messages to track start and end of request
 	klog.V(2).Infof("GetVolumeIDs request has been received for %q", req.PVSpecs)
-	volumeIDs := []string{}
-	specs := req.PVSpecs
-	for i := range specs {
-		spec := specs[i]
-		if spec.CSI == nil {
+
+	var (
+		volumeIDs []string
+	)
+
+	for _, spec := range req.PVSpecs {
+		if spec == nil || spec.CSI == nil {
 			// Not a CSI volume
 			continue
 		}
 
-		// use only the nguid part of the volumeHandle for lightbits volumes
-		if spec.CSI.Driver == "csi.lightbitslabs.com" {
-			// volumeHandle: mgmt:10.131.44.1:443,10.131.44.2:443,10.131.44.3:443|nguid:d22572da-a225-4578-ab1a-9318ac5155c3|proj:cd4eac58-46a5-4a31-b59f-2ec207baa817|scheme:grpcs
-			volumeHandleParts := strings.Split(spec.CSI.VolumeHandle, "|")
-			if len(volumeHandleParts) != 5 {
-				klog.Errorf("invalid lightbits volumeHandle: %q", spec.CSI.VolumeHandle)
+		switch spec.CSI.Driver {
+		case "csi.lightbitslabs.com":
+			fields := map[string]string{}
+			for _, part := range strings.Split(spec.CSI.VolumeHandle, "|") {
+				k, v, ok := strings.Cut(part, ":")
+				if !ok {
+					continue
+				}
+				fields[k] = v
 			}
-			volumeIDs = append(volumeIDs, volumeHandleParts[1])
-			continue
-		}
 
-		volumeIDs = append(volumeIDs, spec.CSI.VolumeHandle)
+			nguid, ok := fields["nguid"]
+			if ok {
+				volumeIDs = append(volumeIDs, nguid)
+				continue
+			}
+
+			klog.Errorf("invalid lightbits volumeHandle (missing nguid): %s", spec.CSI.VolumeHandle)
+
+			fallthrough
+		default:
+			volumeIDs = append(volumeIDs, spec.CSI.VolumeHandle)
+		}
 	}
+
 	klog.V(2).Infof("GetVolumeIDs request has been processed successfully for %q", req.PVSpecs)
+
 	return &driver.GetVolumeIDsResponse{VolumeIDs: volumeIDs}, nil
 }
 
