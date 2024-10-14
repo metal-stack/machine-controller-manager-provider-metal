@@ -415,3 +415,8 @@ func (p *Provider) GetVolumeIDs(_ context.Context, req *driver.GetVolumeIDsReque
 func (p *Provider) GenerateMachineClassForMigration(ctx context.Context, req *driver.GenerateMachineClassForMigrationRequest) (*driver.GenerateMachineClassForMigrationResponse, error) {
 	return nil, fmt.Errorf("machineclass migration is not supported anymore")
 }
+
+// InitializeMachine handles VM initialization for openstack VM's. Currently, un-implemented.
+func (p *Provider) InitializeMachine(_ context.Context, _ *driver.InitializeMachineRequest) (*driver.InitializeMachineResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "metal-stack does not implement InitializeMachine")
+}
