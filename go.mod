@@ -3,10 +3,10 @@ module github.com/metal-stack/machine-controller-manager-provider-metal
 go 1.23
 
 require (
-	github.com/gardener/machine-controller-manager v0.52.0
+	github.com/gardener/machine-controller-manager v0.53.1
 	github.com/google/go-cmp v0.6.0
-	github.com/metal-stack/metal-go v0.34.1
-	github.com/metal-stack/metal-lib v0.18.2
+	github.com/metal-stack/metal-go v0.37.2
+	github.com/metal-stack/metal-lib v0.18.3
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.34.2
 	github.com/spf13/pflag v1.0.5
@@ -27,6 +27,7 @@ require (
 	github.com/emicklei/go-restful/v3 v3.12.1 // indirect
 	github.com/evanphx/json-patch v5.9.0+incompatible // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
+	github.com/fxamacker/cbor/v2 v2.7.0 // indirect
 	github.com/go-jose/go-jose/v4 v4.0.4 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
@@ -76,6 +77,7 @@ require (
 	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/segmentio/asm v1.2.0 // indirect
 	github.com/spf13/cobra v1.8.1 // indirect
+	github.com/x448/float16 v0.8.4 // indirect
 	go.mongodb.org/mongo-driver v1.16.1 // indirect
 	go.opentelemetry.io/otel v1.30.0 // indirect
 	go.opentelemetry.io/otel/metric v1.30.0 // indirect
@@ -93,7 +95,7 @@ require (
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/apimachinery v0.29.9 // indirect
+	k8s.io/apimachinery v0.31.0 // indirect
 	k8s.io/apiserver v0.29.9 // indirect
 	k8s.io/client-go v0.29.9 // indirect
 	k8s.io/cluster-bootstrap v0.29.9 // indirect
