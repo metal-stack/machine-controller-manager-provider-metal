@@ -5,7 +5,7 @@ go 1.23
 require (
 	github.com/gardener/machine-controller-manager v0.54.0
 	github.com/google/go-cmp v0.6.0
-	github.com/metal-stack/metal-go v0.39.9
+	github.com/metal-stack/metal-go v0.40.1
 	github.com/metal-stack/metal-lib v0.20.1
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.36.2
