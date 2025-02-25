@@ -171,12 +171,18 @@ func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineR
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
+	if req.Machine.Spec.ProviderID == "" {
+		klog.Infof("machine has no provider id attached anymore, already deleted and therefore skipping deletion")
+		return &driver.DeleteMachineResponse{}, nil
+	}
+
 	id := decodeMachineID(req.Machine.Spec.ProviderID)
 
 	mfr := &models.V1MachineFindRequest{
 		ID:                id,
 		AllocationProject: providerSpec.Project,
 		Tags:              []string{fmt.Sprintf("%s=%s", tag.ClusterID, clusterIDTag)},
+		AllocationRole:    models.V1MachineAllocationRoleMachine,
 	}
 
 	resp, err := m.Machine().FindMachines(machine.NewFindMachinesParams().WithBody(mfr), nil)
