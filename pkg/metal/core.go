@@ -107,6 +107,20 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 		},
 	}
 
+	var dnsServers []*models.V1DNSServer
+	for _, s := range providerSpec.DNSServers {
+		dnsServers = append(dnsServers, &models.V1DNSServer{
+			IP: &s.IP,
+		})
+	}
+
+	var ntpServers []*models.V1NTPServer
+	for _, s := range providerSpec.NTPServers {
+		ntpServers = append(ntpServers, &models.V1NTPServer{
+			Address: &s.Address,
+		})
+	}
+
 	userData := strings.TrimSpace(string(req.Secret.Data["userData"]))
 
 	createRequest := &models.V1MachineAllocateRequest{
@@ -121,6 +135,8 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 		Imageid:       &providerSpec.Image,
 		Tags:          providerSpec.Tags,
 		SSHPubKeys:    providerSpec.SSHKeys,
+		DNSServers:    dnsServers,
+		NtpServers:    ntpServers,
 		PlacementTags: []string{fmt.Sprintf("%s=%s", tag.ClusterID, clusterIDTag)},
 	}
 
