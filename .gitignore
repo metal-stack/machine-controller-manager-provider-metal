@@ -5,6 +5,7 @@
 /dev
 /test
 /logs
+.ci/
 
 .vscode
 .idea
