@@ -29,10 +29,10 @@ jobs:
         password: ${{ secrets.DOCKER_REGISTRY_TOKEN }}
 
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
 
     - name: Setup Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v6
       with:
         go-version-file: 'go.mod'
         cache: false
