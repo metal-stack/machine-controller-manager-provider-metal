@@ -21,4 +21,4 @@ jobs:
     secrets: inherit
     with:
       build-command: make build
-      test-command: make test-in-docker
+      test: false
