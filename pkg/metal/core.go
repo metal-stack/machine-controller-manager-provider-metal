@@ -28,7 +28,6 @@ import (
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/machinecodes/status"
 	"github.com/metal-stack/metal-go/api/client/machine"
 	"github.com/metal-stack/metal-go/api/models"
-	"github.com/metal-stack/metal-lib/pkg/pointer"
 	"github.com/metal-stack/metal-lib/pkg/tag"
 	"k8s.io/klog/v2"
 )
@@ -102,7 +101,7 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 
 	networks := []*models.V1MachineAllocationNetwork{
 		{
-			Autoacquire: pointer.Pointer(true),
+			Autoacquire: new(true),
 			Networkid:   &providerSpec.Network,
 		},
 	}
@@ -388,7 +387,7 @@ func (p *Provider) GetVolumeIDs(_ context.Context, req *driver.GetVolumeIDsReque
 		switch spec.CSI.Driver {
 		case "csi.lightbitslabs.com":
 			fields := map[string]string{}
-			for _, part := range strings.Split(spec.CSI.VolumeHandle, "|") {
+			for part := range strings.SplitSeq(spec.CSI.VolumeHandle, "|") {
 				k, v, ok := strings.Cut(part, ":")
 				if !ok {
 					continue
