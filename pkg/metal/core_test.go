@@ -23,11 +23,9 @@ func TestProvider_GetVolumeIDs(t *testing.T) {
 				PVSpecs: []*corev1.PersistentVolumeSpec{
 					{
 
-						PersistentVolumeSource: corev1.PersistentVolumeSource{
-							CSI: &corev1.CSIPersistentVolumeSource{
-								Driver:       "csi.lightbitslabs.com",
-								VolumeHandle: "mgmt:10.131.44.1:443,10.131.44.2:443,10.131.44.3:443|nguid:d22572da-a225-4578-ab1a-9318ac5155c3|proj:cd4eac58-46a5-4a31-b59f-2ec207baa817|scheme:grpcs",
-							},
+						CSI: &corev1.CSIPersistentVolumeSource{
+							Driver:       "csi.lightbitslabs.com",
+							VolumeHandle: "mgmt:10.131.44.1:443,10.131.44.2:443,10.131.44.3:443|nguid:d22572da-a225-4578-ab1a-9318ac5155c3|proj:cd4eac58-46a5-4a31-b59f-2ec207baa817|scheme:grpcs",
 						},
 					},
 				},
@@ -42,11 +40,9 @@ func TestProvider_GetVolumeIDs(t *testing.T) {
 				PVSpecs: []*corev1.PersistentVolumeSpec{
 					{
 
-						PersistentVolumeSource: corev1.PersistentVolumeSource{
-							CSI: &corev1.CSIPersistentVolumeSource{
-								Driver:       "csi.lightbitslabs.com",
-								VolumeHandle: "mgmt:10.131.44.1:443,10.131.44.2:443,10.131.44.3:443|proj:cd4eac58-46a5-4a31-b59f-2ec207baa817|scheme:grpcs",
-							},
+						CSI: &corev1.CSIPersistentVolumeSource{
+							Driver:       "csi.lightbitslabs.com",
+							VolumeHandle: "mgmt:10.131.44.1:443,10.131.44.2:443,10.131.44.3:443|proj:cd4eac58-46a5-4a31-b59f-2ec207baa817|scheme:grpcs",
 						},
 					},
 				},
