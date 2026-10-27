@@ -22,9 +22,6 @@ Modifications Copyright (c) 2017 SAP SE or an SAP affiliate company. All rights 
 package main
 
 import (
-	"fmt"
-	"os"
-
 	_ "github.com/gardener/machine-controller-manager/pkg/util/client/metrics/prometheus" // for client metric registration
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/app"
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/app/options"
@@ -49,8 +46,10 @@ func main() {
 
 	provider := cp.NewProvider(&spi.PluginSPIImpl{})
 
+	// The following call will currently never return anything but an error, it simply panics in any other case.
+	// Since it formally might, and the behaviour may change in future, we just tell the linter to ignore it for now.
+	// nolint:staticcheck
 	if err := app.Run(s, provider); err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
-		os.Exit(1)
+		klog.Fatalf("failed to run application: %v", err)
 	}
 }
