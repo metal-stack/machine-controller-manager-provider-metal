@@ -29,6 +29,7 @@ import (
 	"github.com/metal-stack/metal-go/api/client/machine"
 	"github.com/metal-stack/metal-go/api/models"
 	"github.com/metal-stack/metal-lib/pkg/tag"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/klog/v2"
 )
 
@@ -149,9 +150,26 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 
 	machineCreateHistory[req.Machine.Name] = time.Now()
 
+	var addresses []v1.NodeAddress
+	if mcr.Payload != nil && mcr.Payload.Allocation != nil {
+		for _, nw := range mcr.Payload.Allocation.Networks {
+			natype := v1.NodeInternalIP
+			if nw.Networktypev2 != nil && *nw.Networktypev2 == "external" {
+				natype = v1.NodeExternalIP
+			}
+			for _, ip := range nw.Ips {
+				addresses = append(addresses, v1.NodeAddress{
+					Address: ip,
+					Type:    natype,
+				})
+			}
+		}
+	}
+
 	return &driver.CreateMachineResponse{
 		ProviderID: encodeMachineID(providerSpec.Partition, *mcr.Payload.ID),
 		NodeName:   *mcr.Payload.Allocation.Name,
+		Addresses:  addresses,
 	}, nil
 }
 
